@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+          - php: '8.3'
+            laravel: '^13.0'
+            testbench: '^11.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: locked
+          composer-options: --prefer-dist --no-interaction --prefer-stable
+      - name: Select framework test dependencies
+        run: composer require --dev --no-update "orchestra/testbench:${{ matrix.testbench }}" "laravel/framework:${{ matrix.laravel }}"
+      - name: Install matrix dependencies
+        run: composer update --prefer-dist --no-interaction --prefer-stable
+      - run: composer format:check
+      - run: composer analyse
+      - run: composer test
